@@ -1,23 +1,27 @@
+# Obj - Determining the distance between locations or between locations and respective habitat types can serve a variety of purposes. Several resource selection procedures require a description of the daily movement distance of an animal to determine the habitat available to an animal or when generating random locations around known locations. We will start here with a method to determine the average distance moved by mule deer in Colorado in a study to determine methods to alleviate depradation on sunflowers that have become a high commodity crop in the area.
+rm(list = ls())
+
 library(adehabitatLT)
 library(chron)
 library(class)
 library(Rcmdr)
 
-muleys <-read.csv("DCmuleysedited.csv", header=T)
+muleys <-read.csv("C:/Users/ccjuhasz/Desktop/SMAC/GITHUB/Walter-Datasets/Exercise_3.3_DistanceBetweenLocations/DCmuleysedited.csv", header=T)
 str(muleys)
 
 #CODE FOR AN INDIVIDUAL ANIMAL
-muley15 <- subset(muleys, id=="D15")
+muley15 <- subset(muleys, id == "D15")
 muley15[1:20,]
 str(muley15)
-summary <- table(muley15$UTM_Zone,muley15$id)
+summary <- table(muley15$UTM_Zone, muley15$id)
 summary
 muley15$id <- factor(muley15$id)
 
 #Sort data to address error in code and then look at first 20 records of data to confirm
 muley15 <- muley15[order(muley15$GPSFixTime),]
-muley15[1:10,]#code displays the first 20 records to look at what sorting did to data
+muley15[1:20,]#code displays the first 20 records to look at what sorting did to data
 
+# Prepare data to create trajectories using the ltraj command in Adehabitat LT
 ######################################################
 ## Example of a trajectory of type II (time recorded)
 ### Conversion of the date to the format POSIX
@@ -29,54 +33,63 @@ head(da)
 #Attach da to muley15
 muley15$da <- da
 
-timediff <- diff(muley15$da)
-muley15 <-muley15[-1,]
-muley15$timediff <-as.numeric(abs(timediff)) 
+muley15 <- muley15[order(muley15$da),]
+timediff <- diff(muley15$da) # in hours
+muley15 <- muley15[-1,]
+muley15$timediff <- as.numeric(abs(timediff)) 
 str(muley15)
 
 #Clean up muley15 for outliers
-newmuleys <-subset(muley15, muley15$X > 599000 & muley15$X < 705000 & muley15$Y > 4167000 & muley15$timediff < 14401)
+newmuleys <-subset(muley15,
+                   muley15$X > 599000 &
+                     muley15$X < 705000 &
+                     muley15$Y > 4167000 &
+                     muley15$timediff < 14401)
 muley15 <- newmuleys
 str(muley15)
 
-data.xy = muley15[c("X","Y")]
-#Creates class Spatial Points for all locations
+# Create a spatial data frame of locations for muley15 for use in creating trajectories that includes time difference between locations and dates in proper format (as.POSIXct)
+
+data.xy <- muley15[c("X","Y")]
+
 xysp <- SpatialPoints(data.xy)
 proj4string(xysp) <- CRS("+proj=utm +zone=12 +ellps=WGS84")
 
 #Creates a Spatial Data Frame from 
-sppt<-data.frame(xysp)
+sppt <- data.frame(xysp)
 #Creates a spatial data frame of ID
-idsp<-data.frame(muley15[2])
+idsp <- data.frame(muley15[2])
 #Creates a spatial data frame of dt
-dtsp<-data.frame(muley15[24])
+dtsp <- data.frame(muley15[24])
 #Creates a spatial data frame of Burst
-busp<-data.frame(muley15[23])
+busp <- data.frame(muley15[23])
 #Merges ID and Date into the same spatial data frame
-merge<-data.frame(idsp,dtsp,busp)
+merge <- data.frame(idsp,
+                    dtsp,
+                    busp)
 #Adds ID and Date data frame with locations data frame
-coordinates(merge)<-sppt
+coordinates(merge) <- sppt
 plot(merge)
 str(merge)
 
 
 ### Creation of an object of class "ltraj", with for ### example the first animal
-ltraj <- as.ltraj(coordinates(merge),merge$da,id=merge$id)
+ltraj <- as.ltraj(coordinates(merge),
+                  merge$da,
+                  id = merge$id)
 plot(ltraj)
 ltraj
 
 #Now let's look at time differences between locations before moving forward
 summary(muley15$timediff)
 
-## We want to study the trajectory of the day at the scale
-## of the day. We define one trajectory per day. The trajectory should begin
-## at 22H00
-## The following function returns TRUE if the date is comprised between
-## 06H00 and 23H00 (i.e. results in 3 locations/day bursts)
+# Need to create separate "bursts" for each trajectory based on the number of locations collected each day. In our case it was 8 (i.e., locations collected every 3 hours during a 24-hour period).
+
+## We want to study the trajectory of the day at the scale of the day. We define one trajectory per day. The trajectory should begin at 22H00. The following function returns TRUE if the date is comprised between 06H00 and 23H00 (i.e. results in 3 locations/day bursts)
 foo <- function(date) {
-da <- as.POSIXlt(date)
-ho <- da$hour + da$min
-return(ho>15.9&ho<23.9)
+  da <- as.POSIXlt(date)
+  ho <- da$hour + da$min
+  return(ho > 15.9 & ho < 23.9)
 }
 deer <- cutltraj(ltraj, "foo(date)", nextr = TRUE)
 
@@ -131,7 +144,9 @@ str(dfdeer)
 # $ pkey     : Factor w/ 2588 levels "D15.2011-10-12 03:00:52",..: 1
 
 #Code to get mean distance moved for each burst
-summary <- numSummary(dfdeer[,"dist"],groups=dfdeer$burst, statistics=c("mean","sd"))
+summary <- numSummary(dfdeer[,"dist"],
+                      groups = dfdeer$burst,
+                      statistics = c("mean", "sd"))
 
 #Convert matrix from data.frame to export into csv file
 mean <- as.matrix(summary$table)
@@ -142,5 +157,6 @@ write.table(mean, file = "Distance.csv", sep =",", row.names = TRUE, col.names =
 
 #Convert "mean" matrix from above to dataframe to summarize in R
 meantable <- as.data.frame(mean)
-BufferRadius <- numSummary(meantable, statistics=c("mean","sd"))
+BufferRadius <- numSummary(meantable,
+                           statistics = c("mean","sd"))
 BufferRadius
