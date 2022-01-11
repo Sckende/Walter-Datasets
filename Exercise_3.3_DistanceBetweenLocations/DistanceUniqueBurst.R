@@ -152,7 +152,7 @@ summary <- numSummary(dfdeer[,"dist"],
 mean <- as.matrix(summary$table)
 head(mean)
 #Write.table gives csv output of Summary.  Be sure to specify the directory and the output files will be stored there 
-write.table(mean, file = "Distance.csv", sep =",", row.names = TRUE, col.names = TRUE, qmethod ="double")
+# write.table(mean, file = "Distance.csv", sep =",", row.names = TRUE, col.names = TRUE, qmethod ="double")
 
 
 #Convert "mean" matrix from above to dataframe to summarize in R
