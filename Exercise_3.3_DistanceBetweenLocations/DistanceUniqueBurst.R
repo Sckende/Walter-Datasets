@@ -1,4 +1,5 @@
 # Obj - Determining the distance between locations or between locations and respective habitat types can serve a variety of purposes. Several resource selection procedures require a description of the daily movement distance of an animal to determine the habitat available to an animal or when generating random locations around known locations. We will start here with a method to determine the average distance moved by mule deer in Colorado in a study to determine methods to alleviate depradation on sunflowers that have become a high commodity crop in the area.
+# Source - https://ecosystems.psu.edu/research/labs/walter-lab/manual/movement-methods/3-3-distance-between-locations
 rm(list = ls())
 
 library(adehabitatLT)
